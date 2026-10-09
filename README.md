@@ -132,3 +132,7 @@ Wait for the tablet UI, then run the install command. Use your configured addres
 Let the picture finish drawing before Freeze. Wait for **Sleep requested** before disconnecting USB. Wake and return to AppLoad manually. Closing stops the proxy; use Stop/Freeze to request sleep.
 
 This testing build verifies display settings using adapter identities, tolerating temporary Windows display renumbering. 
+
+
+## AI Disclosure 
+AI was used in this project for general code writing. Implementation and design were done by me. 
