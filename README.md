@@ -73,7 +73,7 @@ This project taught me a lot of valuable skills. I got more familiar with the wi
 #
 #
 
-# reMarkable Monitor 1.5.3
+# reMarkable Monitor 1.5.4
 
 For **Windows 11 x64** and **reMarkable 2 over USB**. Sleep controls require tablet firmware **3.28.x**.
 
@@ -90,7 +90,7 @@ Already configured? Skip to Setup.
 | [Virtual Display Driver / VDD Control](https://github.com/VirtualDrivers/Virtual-Display-Driver) | Install its x64 Visual C++ prerequisite and driver per the project instructions. Enable **one virtual monitor**, add **1872 × 1404 @ 60 Hz**, restart that driver, and select **Extend** in Windows Display settings. |
 | [TightVNC Server](https://www.tightvnc.com/download.php) | Install in **application mode**, with no server service running. Application settings: port **5900**, VNC/control authentication off, **allow loopback** and **loopback only** on. In `tvnserver.exe` Compatibility properties, set the high-DPI override to **Application**. |
 | [XOVI](https://github.com/asivery/rm-xovi-extensions), [AppLoad](https://github.com/asivery/rm-appload), [VNSee-QTFB](https://github.com/asivery/vnsee) | Install **rM2 / arm32** releases per their instructions. Keep XOVI at `/home/root/xovi` with qt-resource-rebuilder; run `xovi/rebuild_hashtable` and `xovi/start` over SSH. Extract VNSee into `/home/root/xovi/exthome/appload/`, retaining its four standard launcher entries. |
-| Bundled sleep extension | Install once using the Setup command below; included QMD/helper, no internet download. Requires USB and active XOVI. |
+| Bundled sleep extension | Checked/installed automatically after Start, before monitor startup. Included QMD/helper; requires USB and active XOVI. |
 
 ## Setup
 
@@ -103,24 +103,18 @@ Already configured? Skip to Setup.
    ```
 
    This sets VNSee to the detected PC address on **5902**, creates a USB-only firewall rule, and enrolls a per-user SSH key. OpenSSH may request that tablet's password once; later actions reuse `%USERPROFILE%\.ssh\remarkable_monitor_ed25519`. This key survives package updates. No password is stored in the package or read from environment variables.
-4. If you ran the setup command, wait for **Cursor proxy ready** and press **Ctrl+C**. Close the launcher and install the bundled sleep extension once:
-
-   ```powershell
-   py -3 -u .\remarkable_sleep.py install
-   ```
-
-   Wait for **SLEEP_SETUP_READY**. Installation may restart the tablet UI once. If already installed and active, it verifies setup without restarting. Freeze/Preserve/Stop never install it or restart the UI.
-5. Run `RemarkableMonitor.exe` and allow administrator access; monitor setup starts automatically. Open AppLoad → Reload → **VNSee Fastest** or **25 ms** on the tablet. Minimize the launcher to keep it running; optionally pin its taskbar icon.
+4. If you ran the setup command, wait for **Cursor proxy ready** and press **Ctrl+C**. Run `RemarkableMonitor.exe` and allow administrator access. It opens idle; click **Start / retry** to connect. Sleep setup finishes before monitor startup. First installation may restart the tablet UI once; an existing active installation is verified without restarting. Setup failure stops startup.
+5. Wait for **Cursor proxy ready**, then open AppLoad → Reload → **VNSee Fastest** or **25 ms**. Minimize the launcher to keep it running; optionally pin its taskbar icon.
 
 Optional 25 ms installer: `py -3 .\install_vnsee_faster.py --delay-ms 25` after SSH setup; requires VNSee rM2 **1.1.0**. **Skip driver restart** reuses an active virtual monitor. Diagnostics is read-only; logs appear beside the EXE.
 
-If earlier attempts left the UI stopped or XOVI inactive, restore it before installation (default USB address/key):
+If earlier attempts left the UI stopped or XOVI inactive, restore it before Start (default USB address/key):
 
 ```powershell
 ssh -i "$env:USERPROFILE\.ssh\remarkable_monitor_ed25519" root@10.11.99.1 "systemctl reset-failed xochitl && /home/root/xovi/start"
 ```
 
-Wait for the tablet UI, then run the install command. Use your configured address/key if different. Built-in BusyBox is sufficient; no GNU find or base64 package is needed.
+Wait for the tablet UI, then click **Start / retry**. Use your configured address/key if different. Built-in BusyBox is sufficient; no GNU find or base64 package is needed.
 
 ## Controls
 
@@ -131,7 +125,6 @@ Wait for the tablet UI, then run the install command. Use your configured addres
 
 Let the picture finish drawing before Freeze. Wait for **Sleep requested** before disconnecting USB. Wake and return to AppLoad manually. Closing stops the proxy; use Stop/Freeze to request sleep.
 
-This testing build verifies display settings using adapter identities, tolerating temporary Windows display renumbering. 
 
 
 ## AI Disclosure 
