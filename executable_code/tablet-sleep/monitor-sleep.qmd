@@ -1,0 +1,254 @@
+; reMarkable Monitor sleep override 1.0.0. Original sleep artwork is untouched.
+; Sleep-screen selectors: ingatellent/xovi-qmd-extensions, OS 3.28.
+; No timer, network connection, or AppLoad navigation is added.
+
+AFFECT /qml/device/view/main/MainView.qml
+    IMPORT Qt.labs.folderlistmodel 2.15
+    IMPORT Qt.labs.settings 1.0 MonitorStore
+    TRAVERSE ?#rootItem
+        LOCATE AFTER ALL
+        INSERT {
+            Item {
+                id: monitorSleepController
+                visible: false
+                property bool initializing: true
+                property string consumedTemporary: ""
+                property bool scannedTemporary: false
+                property var seenPings: ({})
+                property int fileRevision: 0
+                property string temporaryToken: {
+                    fileRevision;
+                    return monitorTemporaryFiles.count > 0 ? monitorTemporaryFiles.get(0, "fileName") : "";
+                }
+                property string persistentToken: {
+                    fileRevision;
+                    return monitorPersistentFiles.count > 0 ? monitorPersistentFiles.get(0, "fileName") : "";
+                }
+                property string imageUrl: temporaryToken !== "" && temporaryToken !== consumedTemporary
+                    ? monitorTemporaryFiles.get(0, "fileUrl")
+                    : persistentToken !== "" ? monitorPersistentFiles.get(0, "fileUrl") : ""
+                MonitorStore.Settings {
+                    id: monitorControlStore
+                    fileName: "/home/root/.remarkable-monitor-sleep/control.ini"
+                }
+                FolderListModel {
+                    id: monitorTemporaryFiles
+                    folder: "file:///home/root/.remarkable-monitor-sleep/temporary/"
+                    nameFilters: ["*.png"]
+                    showDirs: false
+                    onStatusChanged: {
+                        if (status === FolderListModel.Ready && !monitorSleepController.scannedTemporary) {
+                            monitorSleepController.scannedTemporary = true;
+                            // A UI restart/reboot ends the previous temporary session.
+                            var token = count > 0 ? get(0, "fileName") : "";
+                            monitorControlStore.setValue("ConsumedTemporary", token);
+                            monitorControlStore.sync();
+                            monitorSleepController.consumedTemporary = token;
+                            monitorSleepController.applyImagePolicy();
+                        }
+                        monitorSleepController.filesChanged();
+                    }
+                }
+                FolderListModel {
+                    id: monitorPersistentFiles
+                    folder: "file:///home/root/.remarkable-monitor-sleep/persistent/"
+                    nameFilters: ["*.png"]
+                    showDirs: false
+                    onStatusChanged: monitorSleepController.filesChanged()
+                }
+                FolderListModel {
+                    id: monitorPingFiles
+                    folder: "file:///home/root/.remarkable-monitor-sleep/requests/"
+                    nameFilters: ["*.ping"]
+                    showDirs: false
+                    onCountChanged: Qt.callLater(monitorSleepController.acknowledgePings)
+                    onStatusChanged: Qt.callLater(monitorSleepController.acknowledgePings)
+                }
+                Connections {
+                    target: monitorTemporaryFiles
+                    function onRowsInserted() { monitorSleepController.filesChanged(); }
+                    function onRowsRemoved() { monitorSleepController.filesChanged(); }
+                    function onModelReset() { monitorSleepController.filesChanged(); }
+                    function onDataChanged() { monitorSleepController.filesChanged(); }
+                }
+                Connections {
+                    target: monitorPersistentFiles
+                    function onRowsInserted() { monitorSleepController.filesChanged(); }
+                    function onRowsRemoved() { monitorSleepController.filesChanged(); }
+                    function onModelReset() { monitorSleepController.filesChanged(); }
+                    function onDataChanged() { monitorSleepController.filesChanged(); }
+                }
+                Connections {
+                    target: monitorPingFiles
+                    function onRowsInserted() { Qt.callLater(monitorSleepController.acknowledgePings); }
+                    function onRowsRemoved() { Qt.callLater(monitorSleepController.acknowledgePings); }
+                    function onModelReset() { Qt.callLater(monitorSleepController.acknowledgePings); }
+                    function onDataChanged() { Qt.callLater(monitorSleepController.acknowledgePings); }
+                }
+                function filesChanged() {
+                    fileRevision += 1;
+                    Qt.callLater(acknowledgePings);
+                }
+                function acknowledgePings() {
+                    if (initializing || monitorPingFiles.status !== FolderListModel.Ready
+                            || monitorTemporaryFiles.status !== FolderListModel.Ready
+                            || monitorPersistentFiles.status !== FolderListModel.Ready) { return; }
+                    applyImagePolicy();
+                    for (var index = 0; index < monitorPingFiles.count; ++index) {
+                        var token = monitorPingFiles.get(index, "fileName");
+                        if (!seenPings[token]) {
+                            seenPings[token] = true;
+                            monitorControlStore.setValue("LiveToken", token);
+                        }
+                    }
+                    recordState();
+                }
+                function recordState() {
+                    monitorControlStore.setValue("Awake", BatteryManager.displayState === BatteryManager.Normal);
+                    monitorControlStore.setValue("DisplayState", BatteryManager.displayState);
+                    monitorControlStore.sync();
+                }
+                function applyImagePolicy() {
+                    if (initializing) { return; }
+                    try {
+                        if (typeof Settings.lightSleepEnabled !== "boolean") {
+                            throw new Error("The native Visible content setting is unavailable");
+                        }
+                        if (imageUrl !== "") {
+                            if (!monitorControlStore.value("OriginalVisibleContentSaved", false)) {
+                                monitorControlStore.setValue("OriginalVisibleContent", Settings.lightSleepEnabled);
+                                monitorControlStore.setValue("OriginalVisibleContentSaved", true);
+                            }
+                            Settings.lightSleepEnabled = false;
+                        } else if (monitorControlStore.value("OriginalVisibleContentSaved", false)) {
+                            Settings.lightSleepEnabled = monitorControlStore.value("OriginalVisibleContent", false);
+                            monitorControlStore.setValue("OriginalVisibleContentSaved", false);
+                        }
+                        monitorControlStore.setValue("PolicyError", "");
+                    } catch (error) {
+                        monitorControlStore.setValue("PolicyError", String(error));
+                    }
+                    monitorControlStore.sync();
+                }
+                onImageUrlChanged: {
+                    applyImagePolicy();
+                    monitorControlStore.setValue("RequestedImage", String(imageUrl));
+                    monitorControlStore.sync();
+                }
+                Image {
+                    id: monitorImageCheck
+                    visible: false
+                    cache: false
+                    source: monitorSleepController.imageUrl
+                    onStatusChanged: {
+                        if (status === Image.Ready) {
+                            monitorSleepController.applyImagePolicy();
+                            monitorControlStore.setValue("ReadyImage", String(source));
+                            monitorControlStore.setValue("ImageWidth", sourceSize.width);
+                            monitorControlStore.setValue("ImageHeight", sourceSize.height);
+                        } else {
+                            monitorControlStore.setValue("ReadyImage", "");
+                        }
+                        monitorControlStore.sync();
+                    }
+                }
+                Connections {
+                    target: BatteryManager
+                    function onDisplayStateChanged(previous, next) {
+                        if (next === BatteryManager.Normal && previous !== BatteryManager.Normal) {
+                            // Consume a temporary override on the native wake event.
+                            // A preserved image continues to apply to future sleeps.
+                            monitorControlStore.setValue("ConsumedTemporary", monitorSleepController.temporaryToken);
+                            monitorControlStore.sync();
+                            monitorSleepController.consumedTemporary = monitorSleepController.temporaryToken;
+                            monitorSleepController.applyImagePolicy();
+                        }
+                        monitorSleepController.recordState();
+                    }
+                }
+                Component.onCompleted: {
+                    monitorControlStore.sync();
+                    consumedTemporary = String(monitorControlStore.value("ConsumedTemporary", ""));
+                    initializing = false;
+                    applyImagePolicy();
+                    monitorControlStore.setValue("RequestedImage", String(imageUrl));
+                    monitorControlStore.setValue("ReadyImage", monitorImageCheck.status === Image.Ready ? String(monitorImageCheck.source) : "");
+                    monitorControlStore.setValue("ImageWidth", monitorImageCheck.sourceSize.width);
+                    monitorControlStore.setValue("ImageHeight", monitorImageCheck.sourceSize.height);
+                    recordState();
+                    monitorControlStore.setValue("LoadedVersion", "1.0.0");
+                    monitorControlStore.setValue("LoadedAt", String(Date.now()));
+                    monitorControlStore.sync();
+                    Qt.callLater(acknowledgePings);
+                }
+            }
+        }
+    END TRAVERSE
+END AFFECT
+
+AFFECT [[15136737896827182809]]
+    IMPORT Qt.labs.folderlistmodel 2.15
+    IMPORT Qt.labs.settings 1.0 MonitorSleepStore
+    TRAVERSE [[7711468349764991]]#[[6504254477]]
+        LOCATE AFTER [[5972374]]
+        INSERT {
+            MonitorSleepStore.Settings {
+                id: monitorSleepStore
+                fileName: "/home/root/.remarkable-monitor-sleep/control.ini"
+            }
+            property int monitorSleepFileRevision: 0
+            FolderListModel {
+                id: monitorSleepTemporary
+                folder: "file:///home/root/.remarkable-monitor-sleep/temporary/"
+                nameFilters: ["*.png"]
+                showDirs: false
+            }
+            FolderListModel {
+                id: monitorSleepPersistent
+                folder: "file:///home/root/.remarkable-monitor-sleep/persistent/"
+                nameFilters: ["*.png"]
+                showDirs: false
+            }
+            Connections {
+                target: monitorSleepTemporary
+                function onRowsInserted() { monitorSleepFileRevision += 1; }
+                function onRowsRemoved() { monitorSleepFileRevision += 1; }
+                function onModelReset() { monitorSleepFileRevision += 1; }
+                function onDataChanged() { monitorSleepFileRevision += 1; }
+            }
+            Connections {
+                target: monitorSleepPersistent
+                function onRowsInserted() { monitorSleepFileRevision += 1; }
+                function onRowsRemoved() { monitorSleepFileRevision += 1; }
+                function onModelReset() { monitorSleepFileRevision += 1; }
+                function onDataChanged() { monitorSleepFileRevision += 1; }
+            }
+            function monitorSleepOverride() {
+                // Re-evaluate when the native sleep window is shown again.
+                var monitorWindowVisible = ~&6504254477&~.~&233748328658231&~;
+                var monitorFileRevision = monitorSleepFileRevision;
+                monitorSleepStore.sync();
+                if (monitorSleepTemporary.count > 0 && monitorSleepTemporary.get(0, "fileName") !== String(monitorSleepStore.value("ConsumedTemporary", ""))) {
+                    return monitorSleepTemporary.get(0, "fileUrl");
+                }
+                if (monitorSleepPersistent.count > 0) {
+                    return monitorSleepPersistent.get(0, "fileUrl");
+                }
+                return "";
+            }
+        }
+        REBUILD [[16364404249624396525]]
+            LOCATE BEFORE STREAM \ ~&7083121450889&~ \
+            INSERT {
+                var monitorImagePath = monitorSleepOverride();
+                if (monitorImagePath !== "") { return monitorImagePath; }
+            }
+        END REBUILD
+    END TRAVERSE
+    TRAVERSE ?#[[16041628731068125427]]
+        LOCATE BEFORE ALL
+        REBUILD [[233748328658231]]
+            LOCATE BEFORE ALL INSERT { monitorSleepOverride() === "" && }
+        END REBUILD
+    END TRAVERSE
+END AFFECT
