@@ -1,9 +1,0 @@
-{
-  "adapter_id": null,
-  "tablet_ip": "10.11.99.1",
-  "usb_network": "10.11.99.0/24",
-  "usb_host_ip": null,
-  "ssh_port": 22,
-  "ssh_key": null,
-  "tightvnc_executable": null
-}
