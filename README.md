@@ -55,7 +55,7 @@ To fix these issues I decided to write a few things. First, a custom python scri
 
 ## Quality of Life
 
-Version 1 of this executable (picture attached) had pretty barebones functionality. Essentially just start/stop. But, I wanted to make use of some of the other cool features of e-ink displays so I decided to add some other features. Primarily, I really liked that E-Ink displays could act like a changeable picture frame when not in use: the screen can be set to pretty much anything and then uses almost no power to stay like that. Which is good, because when my pc is powered off the tablet doesn't get trickle charged, so it has to handle its own power situation.
+Version 1 of this executable had pretty barebones functionality. Essentially just start/stop. But, I wanted to make use of some of the other cool features of e-ink displays so I decided to add some other features. Primarily, I really liked that E-Ink displays could act like a changeable picture frame when not in use: the screen can be set to pretty much anything and then uses almost no power to stay like that. Which is good, because when my pc is powered off the tablet doesn't get trickle charged, so it has to handle its own power situation.
 
 So, in version 2 I added a few things. Primarily, a freeze and a preserve functionality. Freeze sets whatever is currently displayed on the monitor as the default sleep screen for the device, puts it to sleep, and then disconnects ssh. This allows me to place a static image on the device and it kind of sits there, looking nice, even when everything is powered off. Preserve does the same thing, but it sets that as the default sleep screen for the tablet, so it displays that image whenever it goes to sleep.
 
