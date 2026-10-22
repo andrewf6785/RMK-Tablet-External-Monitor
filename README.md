@@ -1,8 +1,11 @@
 ## Included In This Repository
 
+<video src="gallery/IMG_4140.MOV" width="320" height="240" controls></video>
+
 See gallery for pictures and videos of working tablet, and what the windows executable looks like.
 
 Included in this repo is the python script that allows for the cursor to be tracked through vnsee, and the windows executable that allows for launching and arranging the virtual monitors.
+
 [Jump to Dependencies](#dependencies)
 
 This is not a currently supported project: it worked for me on my machine running Windows 11 as of October, 2026. The release in this repository is generalized, with relations to my machine removed.
