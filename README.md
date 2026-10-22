@@ -1,6 +1,8 @@
 ## Included In This Repository
 
-<video src="gallery/IMG_4140.MOV" width="320" height="240" controls></video>
+<p align="center" width="100%">
+<video src="https://github.com/andrewf6785/RMK-Tablet-External-Monitor/blob/main/gallery/IMG_4140.MOV" width="80%" controls></video>
+</p>
 
 See gallery for pictures and videos of working tablet, and what the windows executable looks like.
 
