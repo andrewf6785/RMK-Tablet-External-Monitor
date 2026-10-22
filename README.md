@@ -1,9 +1,5 @@
 ## Included In This Repository
 
-<p align="center" width="100%">
-<video src="https://github.com/andrewf6785/RMK-Tablet-External-Monitor/blob/main/gallery/IMG_4140.MOV" width="80%" controls></video>
-</p>
-
 See gallery for pictures and videos of working tablet, and what the windows executable looks like.
 
 Included in this repo is the python script that allows for the cursor to be tracked through vnsee, and the windows executable that allows for launching and arranging the virtual monitors.
