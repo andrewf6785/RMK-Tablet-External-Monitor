@@ -3,6 +3,7 @@
 See gallery for pictures and videos of working tablet, and what the windows executable looks like.
 
 Included in this repo is the python script that allows for the cursor to be tracked through vnsee, and the windows executable that allows for launching and arranging the virtual monitors.
+[Jump to Dependencies](#dependencies)
 
 This is not a currently supported project: it worked for me on my machine running Windows 11 as of October, 2026. The release in this repository is generalized, with relations to my machine removed.
 
@@ -73,7 +74,7 @@ This project taught me a lot of valuable skills. I got more familiar with the wi
 #
 #
 
-# reMarkable Monitor 1.5.4
+## reMarkable Monitor 1.5.4
 
 For **Windows 11 x64** and **reMarkable 2 over USB**. Sleep controls require tablet firmware **3.28.x**.
 
